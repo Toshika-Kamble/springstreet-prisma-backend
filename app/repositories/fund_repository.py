@@ -41,8 +41,12 @@ class FundRepository:
             stmt = stmt.where(Fund.fund_type == filters.fund_type)
             count_stmt = count_stmt.where(Fund.fund_type == filters.fund_type)
         if filters.search:
-            term = f"%{filters.search}%"
-            condition = or_(Fund.name.ilike(term), Fund.ticker.ilike(term))
+            # func.lower + like works on SQLite and PostgreSQL (ilike is PG-oriented)
+            term = f"%{filters.search.strip().lower()}%"
+            condition = or_(
+                func.lower(Fund.name).like(term),
+                func.lower(Fund.ticker).like(term),
+            )
             stmt = stmt.where(condition)
             count_stmt = count_stmt.where(condition)
 

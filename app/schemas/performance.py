@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 
 class PerformanceSnapshotResponse(BaseModel):
@@ -18,11 +18,29 @@ class PerformanceSnapshotResponse(BaseModel):
     three_year_return: Decimal | None = None
     five_year_return: Decimal | None = None
 
+    @field_serializer(
+        "cagr",
+        "volatility",
+        "sharpe_ratio",
+        "max_drawdown",
+        "total_return",
+        "ytd_return",
+        "one_year_return",
+        "three_year_return",
+        "five_year_return",
+    )
+    def serialize_metrics(self, value: Decimal | None) -> float | None:
+        return float(value) if value is not None else None
+
 
 class PricePoint(BaseModel):
     date: date
     close: Decimal
     adj_close: Decimal | None = None
+
+    @field_serializer("close", "adj_close")
+    def serialize_price(self, value: Decimal | None) -> float | None:
+        return float(value) if value is not None else None
 
 
 class FundPerformanceResponse(BaseModel):

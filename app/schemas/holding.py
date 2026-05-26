@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 
 class AssetSummary(BaseModel):
@@ -24,3 +24,7 @@ class HoldingResponse(BaseModel):
     market_value: Decimal | None
     as_of_date: date
     asset: AssetSummary
+
+    @field_serializer("weight", "shares", "market_value")
+    def serialize_decimal(self, value: Decimal | None) -> float | None:
+        return float(value) if value is not None else None

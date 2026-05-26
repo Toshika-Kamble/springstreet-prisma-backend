@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 
 class BenchmarkSummary(BaseModel):
@@ -22,6 +22,10 @@ class FundBase(BaseModel):
     aum: Decimal | None = None
     expense_ratio: Decimal | None = None
     is_active: bool = True
+
+    @field_serializer("aum", "expense_ratio")
+    def serialize_decimal(self, value: Decimal | None) -> float | None:
+        return float(value) if value is not None else None
 
 
 class FundResponse(FundBase):
