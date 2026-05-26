@@ -256,8 +256,9 @@ cd springstreet-prisma-backend
 .\run.ps1
 ```
 
+- Home: http://127.0.0.1:8000/ (links + status)  
+- Health: http://127.0.0.1:8000/health (HTML in browser; JSON at `/health?format=json`)  
 - Docs: http://127.0.0.1:8000/docs  
-- Health: http://127.0.0.1:8000/health  
 - Funds: http://127.0.0.1:8000/api/v1/funds  
 
 ```powershell

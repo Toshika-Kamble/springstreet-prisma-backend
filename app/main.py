@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.health import router as health_router
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.exceptions import AppException
@@ -52,6 +53,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+app.include_router(health_router)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
@@ -87,31 +89,3 @@ async def handle_unexpected_error(request: Request, exc: Exception) -> JSONRespo
     if settings.debug:
         content["error"] = str(exc)
     return JSONResponse(status_code=500, content=content)
-
-
-@app.get("/health")
-def health_check() -> dict[str, str]:
-    db_status = "ok"
-    try:
-        with SessionLocal() as db:
-            db.execute(text("SELECT 1"))
-    except SQLAlchemyError as exc:
-        db_status = "unavailable"
-        logger.warning("Health check DB error: %s", exc)
-
-    return {
-        "status": "ok" if db_status == "ok" else "degraded",
-        "environment": settings.app_env,
-        "database": db_status,
-        "dialect": engine.dialect.name,
-    }
-
-
-@app.get("/")
-def root() -> dict[str, str]:
-    return {
-        "message": settings.app_name,
-        "docs": "/docs",
-        "api": settings.api_v1_prefix,
-        "funds": f"{settings.api_v1_prefix}/funds",
-    }
