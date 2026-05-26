@@ -1,7 +1,7 @@
-"""Health and landing pages — HTML for browsers, JSON for monitoring tools."""
+"""Health and landing pages — HTML in browser; JSON at /health/json for tools."""
 
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi import APIRouter
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -40,18 +40,9 @@ def _collect_health() -> dict:
             "docs": "/docs",
             "redoc": "/redoc",
             "funds_api": f"{settings.api_v1_prefix}/funds",
-            "health_json": "/health?format=json",
+            "health_json": "/health/json",
         },
     }
-
-
-def _wants_html(request: Request) -> bool:
-    accept = request.headers.get("accept", "")
-    if "format=json" in str(request.url.query):
-        return False
-    if "format=html" in str(request.url.query):
-        return True
-    return "text/html" in accept and "application/json" not in accept.split(",")[0]
 
 
 def _health_html(data: dict) -> str:
@@ -59,50 +50,55 @@ def _health_html(data: dict) -> str:
     status_color = "#16a34a" if ok else "#ca8a04"
     db_color = "#16a34a" if data["database"] == "ok" else "#dc2626"
     fund_line = (
-        f'<p><strong>Funds in database:</strong> {data["fund_count"]}</p>'
+        f"<p><strong>Funds in database:</strong> {data['fund_count']}</p>"
         if data["fund_count"] is not None
         else ""
     )
     error_line = (
-        f'<p style="color:#dc2626"><strong>Error:</strong> {data["error"]}</p>'
+        f"<p style='color:#dc2626'><strong>Error:</strong> {data['error']}</p>"
         if data.get("error")
         else ""
     )
     links = data["links"]
+    scheduler = "enabled" if data["scheduler_enabled"] else "disabled"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{data["service"]} — Health</title>
+  <title>{data['service']} — Health</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #1e293b; }}
+    body {{ font-family: Segoe UI, system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #1e293b; background: #fff; }}
     h1 {{ font-size: 1.5rem; margin-bottom: 0.25rem; }}
-    .badge {{ display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; color: white; font-weight: 600; }}
+    h2 {{ font-size: 1.1rem; margin-top: 1.5rem; }}
+    .badge {{ display: inline-block; padding: 0.35rem 0.9rem; border-radius: 9999px; color: white; font-weight: 600; font-size: 0.95rem; }}
     .card {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }}
-    a {{ color: #2563eb; }}
-    ul {{ line-height: 1.8; }}
+    a {{ color: #2563eb; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+    ul {{ line-height: 1.9; padding-left: 1.25rem; }}
     .muted {{ color: #64748b; font-size: 0.9rem; }}
+    code {{ background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }}
   </style>
 </head>
 <body>
-  <h1>{data["service"]}</h1>
-  <p class="muted">Version {data["version"]} · {data["environment"]}</p>
-  <p><span class="badge" style="background:{status_color}">API {data["status"].upper()}</span></p>
+  <h1>{data['service']}</h1>
+  <p class="muted">Version {data['version']} · Environment: {data['environment']}</p>
+  <p><span class="badge" style="background:{status_color}">API {data['status'].upper()}</span></p>
   <div class="card">
-    <p><strong>Database:</strong> <span style="color:{db_color}">{data["database"]}</span> ({data["dialect"]})</p>
+    <p><strong>Database:</strong> <span style="color:{db_color}">{data['database']}</span> ({data['dialect']})</p>
     {fund_line}
-    <p><strong>Scheduler:</strong> {"enabled" if data["scheduler_enabled"] else "disabled"}</p>
+    <p><strong>Scheduler:</strong> {scheduler}</p>
     {error_line}
   </div>
   <h2>Quick links</h2>
   <ul>
-    <li><a href="{links["docs"]}">API docs (Swagger)</a></li>
-    <li><a href="{links["redoc"]}">API docs (ReDoc)</a></li>
-    <li><a href="{links["funds_api"]}">List funds (JSON)</a></li>
-    <li><a href="{links["health_json"]}">Health check (JSON)</a></li>
+    <li><a href="/">Home</a></li>
+    <li><a href="{links['docs']}">API docs (Swagger)</a></li>
+    <li><a href="{links['redoc']}">API docs (ReDoc)</a></li>
+    <li><a href="{links['funds_api']}">List funds (JSON API)</a></li>
+    <li><a href="{links['health_json']}">Health data (JSON)</a></li>
   </ul>
-  <p class="muted">Monitoring tools: <code>GET /health</code> with <code>Accept: application/json</code> or <code>?format=json</code></p>
+  <p class="muted">Machine-readable status: <code>GET /health/json</code></p>
 </body>
 </html>"""
 
@@ -114,48 +110,47 @@ def _landing_html(data: dict) -> str:
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{data["service"]}</title>
+  <title>{data['service']}</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #1e293b; }}
+    body {{ font-family: Segoe UI, system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #1e293b; background: #fff; }}
     h1 {{ font-size: 1.75rem; }}
-    a {{ color: #2563eb; }}
-    ul {{ line-height: 1.9; }}
+    a {{ color: #2563eb; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+    ul {{ line-height: 1.9; padding-left: 1.25rem; }}
     .muted {{ color: #64748b; }}
+    code {{ background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; }}
   </style>
 </head>
 <body>
-  <h1>{data["service"]}</h1>
+  <h1>{data['service']}</h1>
   <p class="muted">Investment factsheet backend — funds, holdings, performance, exposures.</p>
   <ul>
-    <li><a href="/health">Health status</a></li>
-    <li><a href="{links["docs"]}">Interactive API docs</a></li>
-    <li><a href="{links["funds_api"]}">GET {links["funds_api"]}</a> — list funds</li>
+    <li><a href="/health">Health status page</a></li>
+    <li><a href="{links['docs']}">Interactive API docs</a></li>
+    <li><a href="{links['funds_api']}">List funds</a> — <code>{links['funds_api']}</code></li>
   </ul>
-  <p class="muted">Example: <code>/api/v1/funds/SPY</code> · <code>/api/v1/funds/SPY/performance</code></p>
+  <p class="muted">Examples: <code>/api/v1/funds/SPY</code> · <code>/api/v1/funds/SPY/performance</code></p>
 </body>
 </html>"""
 
 
-@router.get("/health", include_in_schema=True)
-def health_check(request: Request) -> Response:
+@router.get("/health", response_class=HTMLResponse, include_in_schema=True)
+def health_page() -> HTMLResponse:
+    """Human-readable health page (always HTML — open in any browser)."""
     data = _collect_health()
-    if _wants_html(request):
-        return HTMLResponse(_health_html(data), status_code=200 if data["status"] == "ok" else 503)
-    return JSONResponse(
-        content=data,
-        status_code=200 if data["status"] == "ok" else 503,
-    )
+    code = 200 if data["status"] == "ok" else 503
+    return HTMLResponse(content=_health_html(data), status_code=code)
 
 
-@router.get("/", include_in_schema=False)
-def landing(request: Request) -> Response:
+@router.get("/health/json", include_in_schema=True)
+def health_json() -> JSONResponse:
+    """JSON health payload for scripts, Docker healthchecks, and monitoring."""
     data = _collect_health()
-    if _wants_html(request):
-        return HTMLResponse(_landing_html(data))
-    return JSONResponse(
-        content={
-            "message": settings.app_name,
-            "status": data["status"],
-            **data["links"],
-        }
-    )
+    code = 200 if data["status"] == "ok" else 503
+    return JSONResponse(content=data, status_code=code)
+
+
+@router.get("/", response_class=HTMLResponse, include_in_schema=False)
+def landing() -> HTMLResponse:
+    """Home page with navigation links."""
+    return HTMLResponse(content=_landing_html(_collect_health()))

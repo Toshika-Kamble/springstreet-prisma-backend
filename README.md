@@ -257,7 +257,7 @@ cd springstreet-prisma-backend
 ```
 
 - Home: http://127.0.0.1:8000/ (links + status)  
-- Health: http://127.0.0.1:8000/health (HTML in browser; JSON at `/health?format=json`)  
+- Health: http://127.0.0.1:8000/health (HTML status page) · JSON: http://127.0.0.1:8000/health/json  
 - Docs: http://127.0.0.1:8000/docs  
 - Funds: http://127.0.0.1:8000/api/v1/funds  
 
