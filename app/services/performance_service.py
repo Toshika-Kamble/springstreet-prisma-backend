@@ -20,10 +20,14 @@ class PerformanceService:
         self.performance_repo = performance_repo
         self.price_repo = price_repo
 
-    def get_performance(self, ticker: str, snapshot_limit: int = 12) -> FundPerformanceResponse:
-        fund = self.fund_repo.get_by_ticker(ticker)
+    def get_performance(self, identifier: str, snapshot_limit: int = 12) -> FundPerformanceResponse:
+        fund = self.fund_repo.get_by_identifier(identifier)
         if not fund:
-            raise NotFoundError("Fund", ticker)
+            raise NotFoundError(
+                "Fund",
+                identifier,
+                hint="Use ticker (e.g. SPY) or numeric id from GET /funds.",
+            )
 
         latest = self.performance_repo.get_latest(fund.id)
         snapshots = self.performance_repo.list_snapshots(fund.id, limit=snapshot_limit)

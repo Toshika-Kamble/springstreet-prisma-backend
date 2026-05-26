@@ -15,15 +15,19 @@ class ExposureService:
         self.fund_repo = fund_repo
         self.exposure_repo = exposure_repo
 
-    def _require_fund(self, ticker: str):
-        fund = self.fund_repo.get_by_ticker(ticker)
+    def _require_fund(self, identifier: str):
+        fund = self.fund_repo.get_by_identifier(identifier)
         if not fund:
-            raise NotFoundError("Fund", ticker)
+            raise NotFoundError(
+                "Fund",
+                identifier,
+                hint="Use ticker (e.g. SPY) or numeric id from GET /funds.",
+            )
         return fund
 
     def _build_response(
         self,
-        ticker: str,
+        fund_ticker: str,
         rows: list,
         label_attr: str,
         as_of_date,
@@ -38,23 +42,23 @@ class ExposureService:
         ]
         total = sum((r.weight for r in rows), Decimal("0"))
         return ExposureBreakdownResponse(
-            ticker=ticker,
+            ticker=fund_ticker,
             as_of_date=as_of_date,
             exposures=exposures,
             total_weight=total,
         )
 
-    def get_sector_exposure(self, ticker: str) -> ExposureBreakdownResponse:
-        fund = self._require_fund(ticker)
+    def get_sector_exposure(self, identifier: str) -> ExposureBreakdownResponse:
+        fund = self._require_fund(identifier)
         rows, as_of = self.exposure_repo.list_sector_exposures(fund.id)
-        return self._build_response(ticker, rows, "sector", as_of)
+        return self._build_response(fund.ticker, rows, "sector", as_of)
 
-    def get_region_exposure(self, ticker: str) -> ExposureBreakdownResponse:
-        fund = self._require_fund(ticker)
+    def get_region_exposure(self, identifier: str) -> ExposureBreakdownResponse:
+        fund = self._require_fund(identifier)
         rows, as_of = self.exposure_repo.list_region_exposures(fund.id)
-        return self._build_response(ticker, rows, "region", as_of)
+        return self._build_response(fund.ticker, rows, "region", as_of)
 
-    def get_market_cap_exposure(self, ticker: str) -> ExposureBreakdownResponse:
-        fund = self._require_fund(ticker)
+    def get_market_cap_exposure(self, identifier: str) -> ExposureBreakdownResponse:
+        fund = self._require_fund(identifier)
         rows, as_of = self.exposure_repo.list_market_cap_exposures(fund.id)
-        return self._build_response(ticker, rows, "market_cap_bucket", as_of)
+        return self._build_response(fund.ticker, rows, "market_cap_bucket", as_of)

@@ -38,6 +38,8 @@ class FundResponse(FundBase):
 
 
 class FundListItem(BaseModel):
+    """Use `ticker` (e.g. SPY) in path URLs like /funds/SPY — not `id` or `benchmark_ticker`."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -46,4 +48,7 @@ class FundListItem(BaseModel):
     fund_type: str | None
     currency: str
     is_active: bool
-    benchmark_ticker: str | None = None
+    benchmark_ticker: str | None = Field(
+        None,
+        description="Index benchmark symbol — do not use as /funds/{identifier}",
+    )

@@ -13,9 +13,18 @@ class FundRepository:
         stmt = (
             select(Fund)
             .options(joinedload(Fund.benchmark))
-            .where(func.upper(Fund.ticker) == ticker.upper())
+            .where(func.upper(Fund.ticker) == ticker.strip().upper())
         )
         return self.db.scalars(stmt).unique().first()
+
+    def get_by_identifier(self, identifier: str) -> Fund | None:
+        """Resolve a fund by ticker (SPY) or numeric id (1) from list response."""
+        key = identifier.strip()
+        if not key:
+            return None
+        if key.isdigit():
+            return self.get_by_id(int(key))
+        return self.get_by_ticker(key)
 
     def get_by_id(self, fund_id: int) -> Fund | None:
         stmt = (

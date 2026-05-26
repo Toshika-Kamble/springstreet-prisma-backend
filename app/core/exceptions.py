@@ -11,11 +11,11 @@ class AppException(Exception):
 
 
 class NotFoundError(AppException):
-    def __init__(self, resource: str, identifier: str):
-        super().__init__(
-            f"{resource} '{identifier}' not found",
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
+    def __init__(self, resource: str, identifier: str, hint: str | None = None):
+        message = f"{resource} '{identifier}' not found"
+        if hint:
+            message = f"{message}. {hint}"
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
 class ConflictError(AppException):

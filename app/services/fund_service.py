@@ -15,10 +15,14 @@ class FundService:
         self.fund_repo = fund_repo
         self.holding_repo = holding_repo
 
-    def _require_fund(self, ticker: str):
-        fund = self.fund_repo.get_by_ticker(ticker)
+    def _require_fund(self, identifier: str):
+        fund = self.fund_repo.get_by_identifier(identifier)
         if not fund:
-            raise NotFoundError("Fund", ticker)
+            raise NotFoundError(
+                "Fund",
+                identifier,
+                hint="Use the ticker symbol from the list (e.g. SPY), not the numeric id or benchmark_ticker.",
+            )
         return fund
 
     def list_funds(
@@ -42,16 +46,16 @@ class FundService:
         ]
         return PaginatedResponse.create(items, total, pagination.page, pagination.page_size)
 
-    def get_fund(self, ticker: str) -> FundResponse:
-        fund = self._require_fund(ticker)
+    def get_fund(self, identifier: str) -> FundResponse:
+        fund = self._require_fund(identifier)
         return FundResponse.model_validate(fund)
 
     def get_holdings(
         self,
-        ticker: str,
+        identifier: str,
         pagination: PaginationParams,
     ) -> PaginatedResponse[HoldingResponse]:
-        fund = self._require_fund(ticker)
+        fund = self._require_fund(identifier)
         offset = (pagination.page - 1) * pagination.page_size
         holdings, total, _ = self.holding_repo.list_by_fund(
             fund.id, offset=offset, limit=pagination.page_size

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.core.dependencies import (
     get_exposure_service,
@@ -16,6 +16,12 @@ from app.services.performance_service import PerformanceService
 
 router = APIRouter()
 
+FUND_ID_PATH = Path(
+    ...,
+    description="Fund ticker symbol (e.g. SPY, QQQ) or numeric id from GET /funds",
+    examples=["SPY"],
+)
+
 
 @router.get("", response_model=PaginatedResponse[FundListItem])
 def list_funds(
@@ -32,55 +38,55 @@ def list_funds(
     )
 
 
-@router.get("/{ticker}", response_model=FundResponse)
+@router.get("/{identifier}", response_model=FundResponse)
 def get_fund(
-    ticker: str,
+    identifier: str = FUND_ID_PATH,
     service: FundService = Depends(get_fund_service),
 ) -> FundResponse:
-    return service.get_fund(ticker)
+    return service.get_fund(identifier)
 
 
-@router.get("/{ticker}/performance", response_model=FundPerformanceResponse)
+@router.get("/{identifier}/performance", response_model=FundPerformanceResponse)
 def get_fund_performance(
-    ticker: str,
+    identifier: str = FUND_ID_PATH,
     snapshot_limit: int = Query(12, ge=1, le=60),
     service: PerformanceService = Depends(get_performance_service),
 ) -> FundPerformanceResponse:
-    return service.get_performance(ticker, snapshot_limit=snapshot_limit)
+    return service.get_performance(identifier, snapshot_limit=snapshot_limit)
 
 
-@router.get("/{ticker}/holdings", response_model=PaginatedResponse[HoldingResponse])
+@router.get("/{identifier}/holdings", response_model=PaginatedResponse[HoldingResponse])
 def get_fund_holdings(
-    ticker: str,
+    identifier: str = FUND_ID_PATH,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     service: FundService = Depends(get_fund_service),
 ) -> PaginatedResponse[HoldingResponse]:
     return service.get_holdings(
-        ticker,
+        identifier,
         PaginationParams(page=page, page_size=page_size),
     )
 
 
-@router.get("/{ticker}/exposure/regions", response_model=ExposureBreakdownResponse)
+@router.get("/{identifier}/exposure/regions", response_model=ExposureBreakdownResponse)
 def get_region_exposure(
-    ticker: str,
+    identifier: str = FUND_ID_PATH,
     service: ExposureService = Depends(get_exposure_service),
 ) -> ExposureBreakdownResponse:
-    return service.get_region_exposure(ticker)
+    return service.get_region_exposure(identifier)
 
 
-@router.get("/{ticker}/exposure/sectors", response_model=ExposureBreakdownResponse)
+@router.get("/{identifier}/exposure/sectors", response_model=ExposureBreakdownResponse)
 def get_sector_exposure(
-    ticker: str,
+    identifier: str = FUND_ID_PATH,
     service: ExposureService = Depends(get_exposure_service),
 ) -> ExposureBreakdownResponse:
-    return service.get_sector_exposure(ticker)
+    return service.get_sector_exposure(identifier)
 
 
-@router.get("/{ticker}/exposure/market-cap", response_model=ExposureBreakdownResponse)
+@router.get("/{identifier}/exposure/market-cap", response_model=ExposureBreakdownResponse)
 def get_market_cap_exposure(
-    ticker: str,
+    identifier: str = FUND_ID_PATH,
     service: ExposureService = Depends(get_exposure_service),
 ) -> ExposureBreakdownResponse:
-    return service.get_market_cap_exposure(ticker)
+    return service.get_market_cap_exposure(identifier)
